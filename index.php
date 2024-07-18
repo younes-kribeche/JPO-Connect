@@ -1,23 +1,50 @@
 <?php
-session_start(); // Démarrer la session si ce n'est pas déjà fait
-require_once 'config.php'; // Assurez-vous que le chemin vers votre fichier de configuration est correct
-require_once 'vendor/autoload.php'; // Assurez-vous que le chemin vers votre autoload.php est correct
-require_once 'assets/Class/Jpo.php'; // Incluez la classe Jpo
+session_start();
+require_once 'config.php';
+require_once 'Database.php';
+require_once 'vendor/autoload.php';
+require_once 'assets/Class/Jpo.php';
+require_once 'assets/Class/User_jpo.php';
 
 // Vérifier si l'utilisateur souhaite se déconnecter
 if (isset($_GET['logout'])) {
-    // Détruire toutes les données de la session
     session_destroy();
-    // Rediriger vers la page index
     header("Location: index.php");
     exit;
 }
 
-// Créer une instance de la classe Jpo
-$jpoObj = new Jpo();
+// Vérifier si une requête d'image a été effectuée
+if (isset($_GET['image_id'])) {
+    $imageId = intval($_GET['image_id']);
+    
+    // Connexion à la base de données
+    $conn = Database::getInstance()->getConnection();
+    
+    // Préparer et exécuter la requête pour obtenir l'image
+    $stmt = $conn->prepare("SELECT picture FROM jpo WHERE id = ?");
+    $stmt->execute([$imageId]);
+    $image = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($image) {
+        // Définir les en-têtes HTTP pour l'image
+        header("Content-Type: image/jpeg"); // Assurez-vous que le type MIME correspond au format de l'image stockée
+        echo $image['picture'];
+    } else {
+        header("HTTP/1.0 404 Not Found");
+        echo "Image non trouvée";
+    }
+    exit;
+}
 
 // Récupérer toutes les JPO
+$jpoObj = new Jpo();
 $jpos = $jpoObj->getAllJpo();
+
+$userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+$userJpoObj = new UserJpo();
+$userJpos = $userJpoObj->getUserJposByUserId($userId);
+$userJpoIds = array_column($userJpos, 'jpo_id');
+
 ?>
 
 <!DOCTYPE html>
@@ -26,36 +53,43 @@ $jpos = $jpoObj->getAllJpo();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accueil</title>
-    <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Styles CSS personnalisés -->
     <style>
-        .jpoOption {
-            border: 1px solid #ccc;
-            padding: 5px;
-            margin-bottom: 5px;
+        .container {
+            max-width: 1200px; /* Ajustez la largeur maximale selon vos besoins */
         }
-        .jpoOption a {
-            text-decoration: none;
-            color: inherit;
+        .jpo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; /* Espace entre les éléments du grid */
         }
-        .jpoOption:hover {
-            background-color: #f8f9fa;
+        .jpo-item {
+            position: relative;
+            text-align: left;
+            color: white;
+            overflow: hidden;
+            border-radius: 8px; /* Pour des coins arrondis */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Ombre légère pour l'effet 3D */
         }
-        /* Style pour les options de recherche */
-        #jpoOptions {
-            position: absolute;
+        .jpo-item img {
             width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            background-color: white;
-            border: 1px solid #ccc;
-            border-top: none;
-            display: none; /* Caché par défaut */
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease-in-out;
         }
-        .show-options {
-            display: block !important; /* Afficher les options */
+        .jpo-item:hover img {
+            transform: scale(1.05); /* Effet de zoom au survol */
+        }
+        .caption {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .jpo-item:hover .caption {
+            background-color: rgba(0, 0, 0, 0.7);
         }
     </style>
 </head>
@@ -69,32 +103,26 @@ $jpos = $jpoObj->getAllJpo();
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav mr-auto">
                     <?php if (isset($_SESSION['user_token'])): ?>
-                        <!-- Bouton Déconnexion -->
                         <li class="nav-item">
                             <a class="nav-link text-danger" href="index.php?logout=true">Déconnexion</a>
                         </li>
-                        <!-- Lien Profil (toujours visible si connecté) -->
                         <li class="nav-item">
                             <a class="nav-link" href="assets/views/profil_page.php">Profil</a>
                         </li>
-                        <!-- Lien Admin (visible seulement si admin_rank_id > 1) -->
                         <?php if (isset($_SESSION['admin_rank_id']) && $_SESSION['admin_rank_id'] > 1): ?>
                             <li class="nav-item">
-                                <a class="nav-link" href="assets/views/pannel_admin_page.php">Admin</a>
+                                <a class="nav-link text-success" href="assets/views/pannel_admin_page.php">Admin</a>
                             </li>
                         <?php endif; ?>
                     <?php else: ?>
-                        <!-- Lien Connexion -->
                         <li class="nav-item">
                             <a class="nav-link" href="assets/views/connexion_page.php">Connexion</a>
                         </li>
-                        <!-- Lien Inscription -->
                         <li class="nav-item">
                             <a class="nav-link" href="assets/views/inscription_page.php">Inscription</a>
                         </li>
                     <?php endif; ?>
                 </ul>
-                <!-- Barre de recherche -->
                 <form class="form-inline my-2 my-lg-0 ml-auto">
                     <input id="search" class="form-control mr-sm-2" type="search" placeholder="Rechercher une JPO..." aria-label="Search">
                     <div id="jpoOptions" class="dropdown-menu" aria-labelledby="searchDropdownMenu"></div>
@@ -104,85 +132,50 @@ $jpos = $jpoObj->getAllJpo();
     </header>
 
     <div class="container mt-5">
-        <div class="row">
-            <div class="col-md-12">
-                <h2 class="mb-4">Les prochaines Journées Portes Ouvertes:</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Nom</th>
-                            <th scope="col">Ville</th>
-                            <th scope="col">Date</th>
-                            <th scope="col">Description</th>
-                            <th scope="col"></th> <!-- Colonne pour le bouton -->
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($jpos as $jpo): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($jpo['name']); ?></td>
-                                <td><?php echo htmlspecialchars($jpo['city']); ?></td>
-                                <td><?php echo htmlspecialchars($jpo['date']); ?></td>
-                                <td><?php echo htmlspecialchars($jpo['about']); ?></td>
-                                <td>
-                                    <?php if (isset($_SESSION['user_token'])): ?>
-                                        <a href="inscription_jpo.php?id=<?php echo $jpo['id']; ?>" class="btn btn-primary">S'inscrire à la JPO</a>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+        <?php if (!empty($message)): ?>
+            <div class="alert alert-success" role="alert">
+                <?php echo htmlspecialchars($message); ?>
             </div>
+        <?php endif; ?>
+        <h2 class="mb-4">Les prochaines Journées Portes Ouvertes:</h2>
+        <div class="jpo-grid">
+            <?php foreach ($jpos as $jpo): ?>
+                <div class="jpo-item">
+                    <a href="assets/views/jpo_details_page.php?id=<?php echo htmlspecialchars($jpo['id']); ?>">
+                        <!-- Utiliser le script intégré pour servir l'image -->
+                        <img src="index.php?image_id=<?php echo htmlspecialchars($jpo['id']); ?>" alt="<?php echo htmlspecialchars($jpo['name']); ?>">
+                        <div class="caption">
+                            <h5 class="text-light"><?php echo htmlspecialchars($jpo['name']); ?></h5>
+                        </div>
+                    </a>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var jpos = <?php echo json_encode(array_column($jpos, 'name')); ?>;
-            var searchInput = document.getElementById('search');
-            var jpoOptionsContainer = document.getElementById('jpoOptions');
-
-            // Gérer la saisie dans le champ de recherche
-            searchInput.addEventListener('input', function() {
-                var userInput = this.value.trim().toLowerCase();
-                // Vider le container des options JPO existantes
-                jpoOptionsContainer.innerHTML = '';
-
-                // Filtrer et afficher les options correspondantes
-                jpos.forEach(function(jpo) {
-                    if (jpo.toLowerCase().includes(userInput)) {
-                        var option = document.createElement('a');
-                        option.href = 'details_jpo.php?name=' + encodeURIComponent(jpo);
-                        option.classList.add('dropdown-item');
-                        option.textContent = jpo;
-                        jpoOptionsContainer.appendChild(option);
-                    }
-                });
-
-                // Afficher les options si elles existent
-                if (jpoOptionsContainer.children.length > 0) {
-                    jpoOptionsContainer.classList.add('show-options');
+        // Script pour la recherche en temps réel dans la barre de recherche
+        $(document).ready(function() {
+            $('#search').on('input', function() {
+                var searchText = $(this).val();
+                if (searchText.length > 0) {
+                    $('#jpoOptions').addClass('show-options');
+                    $.ajax({
+                        url: 'search.php',
+                        type: 'POST',
+                        data: {search: searchText},
+                        success: function(response) {
+                            $('#jpoOptions').html(response);
+                        }
+                    });
                 } else {
-                    jpoOptionsContainer.classList.remove('show-options');
-                }
-            });
-
-            // Gérer le clic en dehors de la zone de recherche
-            document.addEventListener('click', function(event) {
-                var isClickInside = searchInput.contains(event.target);
-                if (!isClickInside) {
-                    // Cacher les options
-                    jpoOptionsContainer.classList.remove('show-options');
+                    $('#jpoOptions').removeClass('show-options');
                 }
             });
         });
     </script>
-
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

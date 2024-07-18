@@ -1,10 +1,7 @@
 <?php
 
-require_once 'Database.php';
-
 class Jpo {
     private $conn;
-    private $table_name = "jpo";
 
     public function __construct() {
         $this->conn = Database::getInstance()->getConnection();
@@ -12,13 +9,13 @@ class Jpo {
 
     public function getAllJpo() {
         $stmt = $this->conn->query("SELECT * FROM jpo");
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getByIdJpo($id) {
         $stmt = $this->conn->prepare("SELECT * FROM jpo WHERE id = ?");
         $stmt->execute([$id]);
-        return $stmt->fetch();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function createJpo($name, $city, $date, $about) {
@@ -35,5 +32,14 @@ class Jpo {
         $stmt = $this->conn->prepare("DELETE FROM jpo WHERE id = ?");
         return $stmt->execute([$id]);
     }
+
+    // Nouvelle méthode pour obtenir le nombre d'utilisateurs inscrits à une JPO
+    public function getUserCountByJpoId($jpoId) {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) AS user_count FROM user_jpo WHERE jpo_id = ?");
+        $stmt->execute([$jpoId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['user_count'];
+    }
 }
+
 ?>

@@ -23,8 +23,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Créer un token de session (simulé ici par une chaîne aléatoire)
         $token = bin2hex(random_bytes(32));
 
-        // Enregistrer le token dans la session
+        // Enregistrer le token et l'ID utilisateur dans la session
         $_SESSION['user_token'] = $token;
+        $_SESSION['user_id'] = $user['id']; // Ajouter l'ID utilisateur à la session
+        $_SESSION['admin_rank_id'] = $user['admin_rank_id']; // Ajouter le rang administrateur à la session, si nécessaire
 
         // Rediriger vers une page sécurisée après la connexion
         header("Location: ../../index.php");
