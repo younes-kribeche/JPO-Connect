@@ -1,8 +1,7 @@
 <?php
-require_once '../../config.php'; // Assurez-vous que ce fichier charge Dotenv correctement
-
-// Inclure l'autoload de Composer
+require_once '../../config.php'; 
 require_once '../../vendor/autoload.php';
+require_once '../Class/User.php';
 
 use Google\Client as GoogleClient;
 use Google\Service\Oauth2 as GoogleServiceOauth2;
@@ -158,7 +157,7 @@ if (isset($_GET['code']) && !isset($_GET['state'])) {
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body text-center">
-                        <a href="<?php echo $googleLoginUrl; ?>" class="btn btn-danger btn-block">Se connecter avec Google</a>
+                        <a href="<?php echo $googleLoginUrl; ?>" class="btn btn-danger btn-block">S'inscrire' avec Google</a>
                     </div>
                 </div>
             </div>

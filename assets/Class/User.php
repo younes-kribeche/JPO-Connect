@@ -40,13 +40,14 @@ class User {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Méthode pour récupérer tous les utilisateurs
-    public function getAllUsers() {
-        $query = "SELECT * FROM " . $this->table_name;
+    // Méthode pour récupérer un utilisateur par son email
+    public function getUserByEmail($email) {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE mail = :email";
         $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':email', $email);
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     // Méthode pour mettre à jour un utilisateur

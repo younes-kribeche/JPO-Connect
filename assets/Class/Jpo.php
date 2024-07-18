@@ -1,6 +1,10 @@
 <?php
+
+require_once 'Database.php';
+
 class Jpo {
     private $conn;
+    private $table_name = "jpo";
 
     public function __construct() {
         $this->conn = Database::getInstance()->getConnection();
