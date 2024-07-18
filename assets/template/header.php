@@ -29,12 +29,6 @@
         <li class="nav-item">
           <a class="nav-link" href="../views/inscription_page.php">Inscription</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="../views/profil_page.php">Profil</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="../views/pannel_admin_page.php">Admin</a>
-        </li>
       </ul>
     </div>
   </nav>

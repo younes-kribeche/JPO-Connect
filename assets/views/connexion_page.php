@@ -27,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION['user_token'] = $token;
 
         // Rediriger vers une page sécurisée après la connexion
-        header("Location: inscription_page.php");
+        header("Location: ../../index.php");
         exit;
     } else {
         $message = "Identifiants invalides.";
@@ -45,7 +45,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-
+  <?php include '../template/header.php' ?>
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-6">
